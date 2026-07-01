@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Face Mask Detection - TensorFlow.js</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            500: '#22c55e',
+                            600: '#16a34a',
+                            900: '#14532d',
+                        },
+                        danger: {
+                            50: '#fef2f2',
+                            100: '#fee2e2',
+                            500: '#ef4444',
+                            600: '#dc2626',
+                            900: '#7f1d1d',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Google Fonts: Inter & JetBrains Mono -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .code-font {
+            font-family: 'JetBrains Mono', monospace;
+        }
+    </style>
+    <!-- TensorFlow.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
+    <!-- BlazeFace Model CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/blazeface@0.0.7/dist/blazeface.min.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col antialiased">
+
+    <!-- Navbar -->
+    <header class="border-b border-slate-800 bg-slate-900/50 backdrop-blur sticky top-0 z-50">
+        <div class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-8 h-8 rounded-lg bg-green-500 flex items-center justify-center shadow-lg shadow-green-500/20">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-950" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                    </svg>
+                </div>
+                <span class="text-xl font-bold tracking-tight text-white">Face Mask Detection</span>
+            </div>
+            <div class="flex items-center space-x-2">
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-800 text-slate-300 border border-slate-700">
+                    <span class="w-2 h-2 mr-1.5 rounded-full bg-slate-500 animate-pulse" id="model-status-dot"></span>
+                    <span id="model-status-text">Memuat Model...</span>
+                </span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-grow max-w-6xl w-full mx-auto px-4 py-8">
+        <!-- Error Alert -->
+        <div id="error-alert" class="hidden mb-6 p-4 rounded-lg bg-red-900/30 border border-red-700 text-red-200 text-sm flex items-start space-x-3">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-red-400 shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+            </svg>
+            <span id="error-message">Terjadi kesalahan.</span>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            
+            <!-- Left Panel: Input & Controls -->
+            <div class="lg:col-span-7 flex flex-col space-y-6">
+                <!-- Viewport Card -->
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+                    <div class="p-4 border-b border-slate-800 flex items-center justify-between">
+                        <h2 class="text-sm font-semibold text-slate-300">Detektor Visual</h2>
+                        <div class="flex items-center space-x-2 text-xs text-slate-400">
+                            <span class="w-2 h-2 rounded-full bg-slate-600" id="live-indicator"></span>
+                            <span id="input-mode-text">Tidak ada input</span>
+                        </div>
+                    </div>
+                    
+                    <div class="relative bg-slate-950 aspect-[4/3] flex items-center justify-center overflow-hidden">
+                        <!-- Video Feed (Hidden initially) -->
+                        <video id="webcam" class="absolute w-full h-full object-cover transform -scale-x-100 hidden" autoplay playsinline muted></video>
+                        
+                        <!-- Canvas Overlay for face bounding box (Hidden initially) -->
+                        <canvas id="canvas-overlay" class="absolute w-full h-full object-cover transform -scale-x-100 hidden pointer-events-none"></canvas>
+                        
+                        <!-- Hidden Canvas for face crop input -->
+                        <canvas id="canvas-face" class="hidden" width="224" height="224"></canvas>
+                        
+                        <!-- Uploaded Image (Hidden initially) -->
+                        <img id="image-preview" class="absolute max-w-full max-h-full object-contain hidden" alt="Preview" />
+                        
+                        <!-- Placeholder State -->
+                        <div id="placeholder" class="text-center p-6 flex flex-col items-center">
+                            <div class="w-16 h-16 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-400 mb-4">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                                </svg>
+                            </div>
+                            <h3 class="text-sm font-medium text-slate-300">Aktifkan Kamera atau Unggah Foto</h3>
+                            <p class="text-xs text-slate-500 mt-1 max-w-xs">Gunakan webcam laptop untuk deteksi real-time atau masukkan berkas gambar Anda.</p>
+                        </div>
+                        
+                        <!-- Real-time overlay status badge -->
+                        <div id="prediction-badge" class="absolute top-4 right-4 hidden px-3 py-1.5 rounded-lg text-sm font-bold shadow-lg border"></div>
+                    </div>
+                    
+                    <!-- Controls Area -->
+                    <div class="p-5 bg-slate-900/50 border-t border-slate-800/80 flex flex-wrap gap-4 items-center justify-between">
+                        <div class="flex items-center space-x-3">
+                            <button id="btn-webcam" class="px-4 py-2.5 rounded-xl bg-green-600 hover:bg-green-500 text-slate-950 font-semibold text-sm transition flex items-center space-x-2 shadow-lg shadow-green-600/10 disabled:opacity-50 disabled:cursor-not-allowed">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                </svg>
+                                <span id="btn-webcam-text">Mulai Kamera</span>
+                            </button>
+                            
+                            <label class="px-4 py-2.5 rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium text-sm transition cursor-pointer flex items-center space-x-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                                </svg>
+                                <span>Unggah Foto</span>
+                                <input type="file" id="image-upload" accept="image/*" class="hidden" />
+                            </label>
+                        </div>
+                        
+                        <button id="btn-clear" class="text-xs font-semibold text-slate-400 hover:text-slate-200 transition py-2 px-3 rounded-lg hover:bg-slate-800 hidden">
+                            Reset Input
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Right Panel: Results & Settings -->
+            <div class="lg:col-span-5 flex flex-col space-y-6">
+                <!-- Prediction Result Card -->
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl relative overflow-hidden">
+                    <h2 class="text-sm font-semibold text-slate-400 mb-4">Hasil Deteksi</h2>
+                    
+                    <div id="result-idle" class="py-6 text-center text-slate-500 text-sm">
+                        Menunggu input visual untuk melakukan inferensi...
+                    </div>
+                    
+                    <div id="result-active" class="hidden space-y-5">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h3 id="result-label" class="text-2xl font-bold tracking-tight">--</h3>
+                                <p class="text-xs text-slate-400 mt-1">Status Keberadaan Masker</p>
+                            </div>
+                            <div class="text-right">
+                                <div id="result-confidence" class="text-3xl font-extrabold text-white code-font">0.0%</div>
+                                <p class="text-xs text-slate-400 mt-1">Tingkat Kepercayaan</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Progress bar -->
+                        <div class="w-full bg-slate-800 rounded-full h-3 overflow-hidden">
+                            <div id="result-bar" class="h-full bg-green-500 transition-all duration-200" style="width: 0%"></div>
+                        </div>
+
+                        <!-- Info Card -->
+                        <div class="p-3 bg-slate-950 rounded-xl border border-slate-800 text-xs text-slate-400 flex items-center space-x-2">
+                            <span class="w-2 h-2 rounded-full bg-green-500 animate-ping"></span>
+                            <span id="inference-time">Inferensi: 0 ms</span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+            
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-slate-900 bg-slate-950 py-6 text-center text-xs text-slate-500">
+        <p>Aplikasi Deteksi Masker Wajah &copy; 2026. Berjalan sepenuhnya di sisi klien menggunakan TensorFlow.js.</p>
+    </footer>
+
+    <!-- App Logic Script -->
+    <script src="app.js"></script>
+</body>
+</html>
