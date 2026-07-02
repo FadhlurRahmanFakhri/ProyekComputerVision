@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Face Mask Detection - TensorFlow.js</title>
+    <title>Deteksi Masker Wajah - Haar Cascade & CNN</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -56,7 +56,7 @@
                         <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                     </svg>
                 </div>
-                <span class="text-xl font-bold tracking-tight text-white">Face Mask Detection</span>
+                <span class="text-xl font-bold tracking-tight text-white">Deteksi Masker Wajah</span>
             </div>
             <div class="flex items-center space-x-2">
                 <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-800 text-slate-300 border border-slate-700">
@@ -177,6 +177,32 @@
                         <div class="p-3 bg-slate-950 rounded-xl border border-slate-800 text-xs text-slate-400 flex items-center space-x-2">
                             <span class="w-2 h-2 rounded-full bg-green-500 animate-ping"></span>
                             <span id="inference-time">Inferensi: 0 ms</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Info Metodologi Card -->
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
+                    <h2 class="text-sm font-semibold text-slate-400">Informasi Proyek</h2>
+                    <div class="space-y-3 text-xs text-slate-300">
+                        <div>
+                            <span class="text-slate-500 block mb-1">Judul Proyek</span>
+                            <span class="text-slate-200 font-semibold leading-relaxed block text-sm">
+                                Deteksi Penggunaan Masker Wajah Menggunakan Metode Haar Cascade dan Convolutional Neural Network (CNN)
+                            </span>
+                        </div>
+                        <div class="border-t border-slate-800/80 pt-3">
+                            <span class="text-slate-500 block mb-1">Pengembang</span>
+                            <span class="text-slate-200 font-semibold text-sm">Fadhlur Rahman Fakhri</span>
+                            <span class="text-slate-400 block mt-0.5">Tugas Computer Vision (Semester 8)</span>
+                        </div>
+                        <div class="border-t border-slate-800/80 pt-3">
+                            <span class="text-slate-500 block mb-1">Metodologi & Teknologi</span>
+                            <ul class="list-disc list-inside space-y-1 mt-1 text-slate-300">
+                                <li><strong>Deteksi Wajah:</strong> Haar Cascade (Python) / BlazeFace (Web)</li>
+                                <li><strong>Klasifikasi Masker:</strong> Convolutional Neural Network (CNN)</li>
+                                <li><strong>Pustaka Utama:</strong> OpenCV & TensorFlow.js</li>
+                            </ul>
                         </div>
                     </div>
                 </div>
